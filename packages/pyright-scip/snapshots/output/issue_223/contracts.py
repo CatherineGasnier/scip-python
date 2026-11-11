@@ -1,6 +1,7 @@
 # < definition scip-python python scip-final-repro 0.1.0 contracts/__init__:
 #documentation (module) contracts
 
+# < start enclosing_range scip-python python scip-final-repro 0.1.0 contracts/__init__:
 # format-options: showDocs,showRanges
 
 from __future__ import annotations
@@ -84,6 +85,7 @@ import math
 
 
 # < start enclosing_range scip-python python scip-final-repro 0.1.0 contracts/_validate().
+#             ⌄ start enclosing_range scip-python python scip-final-repro 0.1.0 contracts/_validate().(value)
 def _validate(value: object) -> None:
 #   ^^^^^^^^^ definition  scip-final-repro 0.1.0 contracts/_validate().
 #   documentation ```python
@@ -96,6 +98,7 @@ def _validate(value: object) -> None:
 #                    external documentation ```python
 #                                > (class) object
 #                                > ```
+#             ^ end enclosing_range scip-python python scip-final-repro 0.1.0 contracts/_validate().(value)
     if not isinstance(value, Foo):
 #          ^^^^^^^^^^ reference local 0
 #          external documentation ```python
@@ -157,6 +160,7 @@ class Foo:
 #                  > ```
 
 #   ⌄ start enclosing_range scip-python python scip-final-repro 0.1.0 contracts/Foo#__post_init__().
+#                     ⌄ start enclosing_range scip-python python scip-final-repro 0.1.0 contracts/Foo#__post_init__().(self)
     def __post_init__(self) -> None:
 #       ^^^^^^^^^^^^^ definition  scip-final-repro 0.1.0 contracts/Foo#__post_init__().
 #       documentation ```python
@@ -165,9 +169,11 @@ class Foo:
 #                   > ) -> None:
 #                   > ```
 #                     ^^^^ definition  scip-final-repro 0.1.0 contracts/Foo#__post_init__().(self)
+#                     ^ end enclosing_range scip-python python scip-final-repro 0.1.0 contracts/Foo#__post_init__().(self)
         _validate(self)
 #       ^^^^^^^^^ reference  scip-final-repro 0.1.0 contracts/_validate().
 #                 ^^^^ reference  scip-final-repro 0.1.0 contracts/Foo#__post_init__().(self)
 #   ^ end enclosing_range scip-python python scip-final-repro 0.1.0 contracts/Foo#__post_init__().
 # < end enclosing_range scip-python python scip-final-repro 0.1.0 contracts/Foo#
+# < end enclosing_range scip-python python scip-final-repro 0.1.0 contracts/__init__:
 
