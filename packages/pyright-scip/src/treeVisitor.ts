@@ -234,6 +234,7 @@ export class TreeVisitor extends ParseTreeWalker {
                         symbol_roles: scip.SymbolRole.Definition,
                         symbol: symbol.value,
                         range: [0, 0, 0],
+                        enclosing_range: parseNodeToRange(node, fileInfo.lines).toLsif(),
                     })
                 );
 
@@ -246,6 +247,7 @@ export class TreeVisitor extends ParseTreeWalker {
                 this.document.symbols.push(
                     new scip.SymbolInformation({
                         symbol: symbol.value,
+                        kind: scip.SymbolInformation.Kind.Module,
                         documentation,
                     })
                 );
@@ -369,6 +371,9 @@ export class TreeVisitor extends ParseTreeWalker {
         this.document.symbols.push(
             new scip.SymbolInformation({
                 symbol: this.getScipSymbol(node).value,
+                kind: ParseTreeUtils.getEnclosingClass(node, true)
+                    ? scip.SymbolInformation.Kind.Method
+                    : scip.SymbolInformation.Kind.Function,
                 documentation,
                 relationships,
             })
@@ -387,6 +392,10 @@ export class TreeVisitor extends ParseTreeWalker {
 
         // Walk the parameters individually, with additional information about the function
         node.parameters.forEach((paramNode: ParameterNode) => {
+            if (!paramNode.name) {
+                this.walk(paramNode);
+                return;
+            }
             const symbol = this.getScipSymbol(paramNode);
 
             // This pulls documentation of various styles from function docstring
@@ -399,6 +408,7 @@ export class TreeVisitor extends ParseTreeWalker {
             this.document.symbols.push(
                 new scip.SymbolInformation({
                     symbol: symbol.value,
+                    kind: scip.SymbolInformation.Kind.Parameter,
                     documentation: paramDocumentation,
                 })
             );
@@ -553,6 +563,7 @@ export class TreeVisitor extends ParseTreeWalker {
                 switch (decl.node.nodeType) {
                     case ParseNodeType.Function:
                     case ParseNodeType.Class:
+                    case ParseNodeType.Parameter:
                         this.pushNewOccurrence(node, existingSymbol, scip.SymbolRole.Definition, decl.node);
                         break;
                     default:
@@ -757,6 +768,7 @@ export class TreeVisitor extends ParseTreeWalker {
                     this.document.symbols.push(
                         new scip.SymbolInformation({
                             symbol: symbol.value,
+                            kind: scip.SymbolInformation.Kind.Class,
                             documentation,
                             relationships,
                         })
@@ -1374,7 +1386,7 @@ export class TreeVisitor extends ParseTreeWalker {
         symbol: ScipSymbol,
         role: number = scip.SymbolRole.ReadAccess,
         // TODO(issue: https://github.com/sourcegraph/scip-python/issues/134)
-        decl?: FunctionNode | ClassNode
+        decl?: FunctionNode | ClassNode | ParameterNode
     ): void {
         softAssert(symbol.value.trim() == symbol.value, `Invalid symbol ${node} -> ${symbol.value}`);
 
