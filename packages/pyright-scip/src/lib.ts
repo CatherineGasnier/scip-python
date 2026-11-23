@@ -233,7 +233,7 @@ export function formatSnapshot(
                 const isDefinition = (occurrence.symbol_roles & scip.SymbolRole.Definition) > 0;
                 out.push(commentSyntax);
                 out.push(' < ');
-                out.push(isDefinition ? 'definition' : 'reference');
+                out.push(formatRoles(occurrence));
                 out.push(' ');
                 out.push(occurrence.symbol);
                 pushDoc(range, occurrence.symbol, isDefinition, true);
@@ -283,7 +283,7 @@ export function formatSnapshot(
             out.push('^'.repeat(caretLength));
             out.push(' ');
             const isDefinition = (occurrence.symbol_roles & scip.SymbolRole.Definition) > 0;
-            out.push(isDefinition ? 'definition' : 'reference');
+            out.push(formatRoles(occurrence));
             out.push(' ');
             const symbol = occurrence.symbol.startsWith(packageName)
                 ? occurrence.symbol.slice(packageName.length)
@@ -299,6 +299,16 @@ export function formatSnapshot(
         }
     }
     return out.join('');
+}
+
+/**
+ * Formats the roles of an occurrence: `definition` or `reference`, followed
+ * by `test` if the occurrence has `SymbolRole.Test`.
+ */
+function formatRoles(occurrence: scip.Occurrence): string {
+    const isDefinition = (occurrence.symbol_roles & scip.SymbolRole.Definition) > 0;
+    const isTest = (occurrence.symbol_roles & scip.SymbolRole.Test) > 0;
+    return (isDefinition ? 'definition' : 'reference') + (isTest ? ' test' : '');
 }
 
 export function writeSnapshot(outputPath: string, obtained: string): void {

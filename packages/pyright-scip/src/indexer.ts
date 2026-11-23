@@ -20,8 +20,9 @@ import { version } from 'package.json';
 import { FileMatcher } from './FileMatcher';
 import { sendStatus, StatusUpdater, withStatus } from './status';
 import { scip } from './scip';
-import { ScipPyrightConfig } from './config';
+import { parseToml, ScipPyrightConfig } from './config';
 import { setProjectNamespace } from './symbols';
+import { TestFileMatcher } from './TestFileMatcher';
 
 export class MissingProjectVersionError extends Error {
     constructor() {
@@ -36,6 +37,7 @@ export class Indexer {
     counter: Counter;
     pyrightConfig: ConfigOptions;
     projectFiles: Set<string>;
+    testFileMatcher: TestFileMatcher;
 
     public static inferProjectInfo(
         inferProjectVersionFromCommit: boolean,
@@ -46,8 +48,7 @@ export class Indexer {
         try {
             const pyprojectTomlContents = getPyprojectTomlContents();
             if (pyprojectTomlContents) {
-                // @iarna/toml 3 rejects CRLF inside comments; normalize valid line endings only.
-                const tomlMap = TOML.parse(pyprojectTomlContents.replace(/\r\n/g, '\n'));
+                const tomlMap = parseToml(pyprojectTomlContents);
                 // See: https://packaging.python.org/en/latest/specifications/declaring-project-metadata/#specification
                 let project = tomlMap['project'] as TOML.JsonMap | undefined;
                 if (project) {
@@ -134,6 +135,7 @@ export class Indexer {
         }
 
         sendStatus(`Total Project Files ${this.projectFiles.size}`);
+        this.testFileMatcher = TestFileMatcher.fromPytestConfig(fs, scipConfig.projectRoot);
 
         const host = new FullAccessHost(fs);
         this.importResolver = new ImportResolver(fs, this.pyrightConfig, host);
@@ -262,6 +264,7 @@ export class Indexer {
                     scipConfig: this.scipConfig,
                     pythonEnvironment: packageConfig,
                     globalSymbols,
+                    isTestFile: this.testFileMatcher.isTestFile(filepath),
                 });
 
                 try {
