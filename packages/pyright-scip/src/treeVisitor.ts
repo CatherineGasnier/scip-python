@@ -151,6 +151,8 @@ export interface TreeVisitorConfig {
     scipConfig: ScipConfig;
     pythonEnvironment: PythonEnvironment;
     globalSymbols: Map<number, ScipSymbol>;
+    /** Whether the whole file is test code, so that all its occurrences get `SymbolRole.Test`. */
+    isTestFile: boolean;
 }
 
 interface ScipSymbolOptions {
@@ -231,7 +233,7 @@ export class TreeVisitor extends ParseTreeWalker {
 
                 this.document.occurrences.push(
                     new scip.Occurrence({
-                        symbol_roles: scip.SymbolRole.Definition,
+                        symbol_roles: this.withTestRole(node, scip.SymbolRole.Definition),
                         symbol: symbol.value,
                         range: [0, 0, 0],
                     })
@@ -434,7 +436,7 @@ export class TreeVisitor extends ParseTreeWalker {
         const symbol = this.getScipSymbol(node);
         this.document.occurrences.push(
             new scip.Occurrence({
-                symbol_roles: scip.SymbolRole.Import | scip.SymbolRole.ReadAccess,
+                symbol_roles: this.withTestRole(node, scip.SymbolRole.Import | scip.SymbolRole.ReadAccess),
                 symbol: symbol.value,
                 range: parseNodeToRange(node.module, this.fileInfo!.lines).toLsif(),
             })
@@ -1380,12 +1382,32 @@ export class TreeVisitor extends ParseTreeWalker {
 
         this.document.occurrences.push(
             new scip.Occurrence({
-                symbol_roles: role,
+                symbol_roles: this.withTestRole(node, role),
                 symbol: symbol.value,
                 range: parseNodeToRange(node, this.fileInfo!.lines).toLsif(),
                 enclosing_range: decl && parseNodeToRange(decl, this.fileInfo!.lines).toLsif(),
             })
         );
+    }
+
+    /**
+     * Adds `SymbolRole.Test` to `roles` if `node` is in test code: anywhere
+     * in a test file, or inside a class deriving from `unittest.TestCase`,
+     * which is what unittest runs as tests wherever it is defined.
+     */
+    private withTestRole(node: ParseNode, roles: number): number {
+        return this.config.isTestFile || this.isInTestCaseClass(node) ? roles | scip.SymbolRole.Test : roles;
+    }
+
+    /** Tells whether any class enclosing `node`, at any depth, derives from `unittest.TestCase`. */
+    private isInTestCaseClass(node: ParseNode): boolean {
+        for (let cls = ParseTreeUtils.getEnclosingClass(node); cls; cls = ParseTreeUtils.getEnclosingClass(cls)) {
+            const mro = this.evaluator.getTypeOfClass(cls)?.classType.details.mro ?? [];
+            if (mro.some((base) => Types.isClass(base) && base.details.fullName === 'unittest.case.TestCase')) {
+                return true;
+            }
+        }
+        return false;
     }
 
     // TODO: Can remove module name? or should I pass more info in...

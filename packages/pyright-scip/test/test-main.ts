@@ -637,6 +637,48 @@ function testMissingProjectVersion(): void {
     }
 }
 
+function testTestRoleFromPytestConfig(): void {
+    // macOS temporary directories can be symlinked; match the analyzer's resolved file paths.
+    const projectRoot = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'scip-test-role-')));
+    try {
+        fs.writeFileSync(
+            path.join(projectRoot, 'pyproject.toml'),
+            '[tool.pytest.ini_options]\npython_files = ["check_*.py"]\n'
+        );
+        fs.writeFileSync(path.join(projectRoot, 'lib.py'), 'def value():\n    return 1\n');
+        for (const file of ['check_lib.py', 'test_lib.py', 'conftest.py']) {
+            fs.writeFileSync(path.join(projectRoot, file), 'from lib import value\n\ndef test_value():\n    value()\n');
+        }
+        indexAction({
+            projectName: 'test-role',
+            projectVersion: '1.0',
+            cwd: projectRoot,
+            output: 'index.scip',
+            environment: path.resolve('snapshots/testEnv.json'),
+            infer: { projectVersionFromCommit: false },
+            quiet: true,
+            dev: false,
+            showProgressRateLimit: undefined,
+        });
+        const index = scip.Index.deserializeBinary(fs.readFileSync(path.join(projectRoot, 'index.scip')));
+        for (const [file, isTestFile] of [
+            ['check_lib.py', true],
+            ['conftest.py', true],
+            ['test_lib.py', false],
+            ['lib.py', false],
+        ] as const) {
+            const document = index.documents.find((doc) => doc.relative_path === file)!;
+            assert.ok(document.occurrences.length > 0, `No occurrences in ${file}`);
+            for (const occurrence of document.occurrences) {
+                const hasTestRole = (occurrence.symbol_roles & scip.SymbolRole.Test) !== 0;
+                assert.strictEqual(hasTestRole, isTestFile, `Test role of ${occurrence.symbol} in ${file}`);
+            }
+        }
+    } finally {
+        fs.rmSync(projectRoot, { recursive: true, force: true });
+    }
+}
+
 function unitTests(): void {
     testPyprojectParsing();
     testAnnotatedVariables();
@@ -645,6 +687,7 @@ function unitTests(): void {
     testPyprojectLineEndings();
     testSourceSearchPaths();
     testMissingProjectVersion();
+    testTestRoleFromPytestConfig();
     pythonCLITests();
 }
 

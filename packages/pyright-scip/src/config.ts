@@ -434,8 +434,7 @@ export class ScipPyrightConfig {
         return this._attemptParseFile(pyprojectPath, (fileContents, attemptCount) => {
             try {
                 // First, try and load tool.scip section
-                // @iarna/toml 3 rejects CRLF inside comments; preserve lone CR for validation.
-                const configObj = TOML.parse(fileContents.replace(/\r\n/g, '\n'));
+                const configObj = parseToml(fileContents);
                 if (configObj && configObj.tool && (configObj.tool as TOML.JsonMap).scip) {
                     return (configObj.tool as TOML.JsonMap).scip as object;
                 }
@@ -453,4 +452,13 @@ export class ScipPyrightConfig {
             return undefined;
         });
     }
+}
+
+/**
+ * Parses a TOML document, such as `pyproject.toml`, and throws if it is invalid.
+ * @iarna/toml 3 rejects CRLF inside comments, so CRLF line endings are normalized
+ * first. A lone CR is left alone, so that it is still rejected.
+ */
+export function parseToml(contents: string): TOML.JsonMap {
+    return TOML.parse(contents.replace(/\r\n/g, '\n'));
 }

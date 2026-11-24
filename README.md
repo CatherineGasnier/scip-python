@@ -51,6 +51,14 @@ $ scip-python index . --project-name=$MY_PROJECT --project-namespace=implicit.na
 
 Now all symbols will have `implicit.namespace` prepended to their symbol, so that you can use it for cross repository navigation, even if the directory structure in your current project does not explicitly show `implicit/namespace/myproject/__init__.py`.
 
+### Test code
+
+scip-python marks occurrences in test code with the `Test` symbol role. An occurrence is in test code if it is located:
+
+- in a file that pytest collects tests from, meaning a `.py` file that matches pytest's [`python_files`](https://docs.pytest.org/en/stable/reference/reference.html#confval-python_files) patterns. scip-python reads them from the configuration file that pytest would use when run from the project root (`pytest.toml`, `pytest.ini`, `pyproject.toml`, `tox.ini` or `setup.cfg`). Otherwise, it uses pytest's defaults, `test_*.py` and `*_test.py`;
+- in a `conftest.py` file;
+- inside a subclass of `unittest.TestCase`, including its nested classes, whatever the file name.
+
 ## Environment
 
 The environment file format is a JSON list of `PythonPackage`s. The `PythonPackage` has the following form:
